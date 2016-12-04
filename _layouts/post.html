@@ -1,16 +1,18 @@
 ---
-layout: default
+layout: default_with_header
+comments: true
 ---
 
-<div class="post">
 
-  <header class="post-header">
-    <h1 class="post-title">{{ page.title }}</h1>
-    <p class="post-meta">{{ page.date | date: "%b %-d, %Y" }}{% if page.author %} • {{ page.author }}{% endif %}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
-  </header>
+<div class="blog-post">
+  <h2 class="blog-post-title">{{ page.title }}</h2>
+  <p class="blog-post-meta">{{ page.date | date: "%b %-d, %Y" }}{% if page.author %} • {{ page.author }}{% endif %}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
 
-  <article class="container">
-    {{ content }}
-  </article>
+
+  <p>hello world
+    {{ page.content }}
+  </p>
+
+  {% include disqus.html %}
 
 </div>

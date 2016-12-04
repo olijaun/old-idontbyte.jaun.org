@@ -23,10 +23,9 @@
 body {
   //font-family: Georgia, "Times New Roman", Times, serif;
   font-family: 'Vollkorn', serif;
-  color: #555;
+  color: #525254;
+  //background-color: black;
 }
-
-
 
 h1, .h1,
 h2, .h2,
@@ -37,7 +36,8 @@ h6, .h6 {
   //font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-family: 'Delta Jaeger Medium', normal;
   font-weight: normal;
-  color: #333;
+  //color: #333;
+  color: #80341d;
 }
 
 
@@ -53,14 +53,20 @@ h6, .h6 {
 /*
  * Masthead for nav
  */
-
-
-
-.blog-masthead {
+.blog-masthead-with-margin {
   margin-bottom: 3rem;
   -webkit-box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
   box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
-  background-color: black;
+  background-color: #1d4461;;
+  //color: #6a6c21;
+}
+
+.blog-masthead-without-margin {
+  //margin-bottom: 3rem;
+  -webkit-box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
+  box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
+  background-color: #1d4461;
+  //color: #6a6c21;
 }
 
 /* Nav links */
@@ -68,7 +74,7 @@ h6, .h6 {
   position: relative;
   padding: 1rem;
   font-weight: 500;
-  color: #cdddeb;
+  color: white;
 }
 .nav-link:hover,
 .nav-link:focus {
@@ -94,17 +100,24 @@ h6, .h6 {
   border-left: .3rem solid transparent;
 }
 
+a {
+  color: #1a4663;
+}
+
 
 /*
  * Blog name and description
  */
 
 .blog-header {
+  //margin-top: 3rem;
+  padding-top: 3rem;
   padding-bottom: 1.25rem;
   margin-bottom: 2rem;
   border-bottom: .05rem solid #eee;
   //background-color: #fe5000;
-  background-color: #ff8200;
+  //background-color: #ff8200;
+  background-color: #fe4b13;
 }
 .blog-title {
   margin-bottom: 0;
@@ -112,10 +125,11 @@ h6, .h6 {
   font-weight: normal;
   font-family: 'Bungee', cursive;
   //font-family: 'Delta Jaeger Medium', normal;
+  color: #ffd01e;
 }
 .blog-description {
   font-size: 1.1rem;
-  color: #999;
+  color: #555;
   font-family: 'Vollkorn', serif;
 }
 
@@ -138,7 +152,7 @@ h6, .h6 {
 }
 .sidebar-module-inset {
   padding: 1rem;
-  background-color: #f5f5f5;
+  background-color: #fecf1d;
   border-radius: .25rem;
 }
 .sidebar-module-inset p:last-child,
@@ -172,7 +186,7 @@ h6, .h6 {
 }
 .blog-post-meta {
   margin-bottom: 1.25rem;
-  color: #999;
+  color: #525254;
 }
 
 
@@ -182,7 +196,7 @@ h6, .h6 {
 
 .blog-footer {
   padding: 2.5rem 0;
-  color: #999;
+  color: #525254;
   text-align: center;
   background-color: #f9f9f9;
   border-top: .05rem solid #e5e5e5;
