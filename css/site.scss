@@ -1,0 +1,224 @@
+---
+---
+
+// http://veithen.github.io/2015/03/26/jekyll-bootstrap.html
+
+
+
+
+
+//
+//
+
+//$font-family-serif:       'Droid Serif', Georgia, "Times New Roman", Times, serif !default;
+////** Default monospace fonts for `<code>`, `<kbd>`, and `<pre>`.
+//$font-family-monospace:   Menlo, Monaco, Consolas, "Courier New", monospace !default;
+//$font-family-base:        $font-family-serif !default;
+//
+//$font-size-base:          20px !default;
+//$font-size-large:         ceil(($font-size-base * 1.25)) !default; // ~18px
+//$font-size-small:         ceil(($font-size-base * 0.85)) !default; // ~12px
+//
+//$font-size-h1:            floor(($font-size-base * 2.6)) !default; // ~36px
+//$font-size-h2:            floor(($font-size-base * 2.15)) !default; // ~30px
+//$font-size-h3:            ceil(($font-size-base * 1.7)) !default; // ~24px
+//$font-size-h4:            ceil(($font-size-base * 1.25)) !default; // ~18px
+//$font-size-h5:            $font-size-base !default;
+//$font-size-h6:            ceil(($font-size-base * 0.85)) !default; // ~12px
+//
+////** Unit-less `line-height` for use in components like buttons.
+//$line-height-base:        1.428571429 !default; // 20/14
+////** Computed "line-height" (`font-size` * `line-height`) for use with `margin`, `padding`, etc.
+//$line-height-computed:    floor(($font-size-base * $line-height-base)) !default; // ~20px
+//
+////** By default, this inherits from the `<body>`.
+//$headings-font-family:    $font-family-sans-serif !default;
+//$headings-font-weight:    500 !default;
+//$headings-line-height:    1.1 !default;
+//$headings-color:          inherit !default;
+//
+//.navbar .nav > li > a, .navbar .nav > li > a:first-letter,
+//.navbar .nav > li.current-menu-item > a,
+//.navbar .nav > li.current-menu-ancestor > a {
+//  font-family:    $font-family-sans-serif;
+//}
+//
+//* {
+//  text-align: justify;
+//}
+//
+//.main-content .container-fluid, .nav ul {
+//  max-width: 50em;
+//  padding: 0em 1em 0em;
+//}
+//
+//body {
+//  font: 1.125em / 1.66667 PT Serif, Cambria, Georgia, serif;
+//}
+//
+
+
+@font-face {
+  font-family: 'BebasNeueRegular';
+  src: url('../assets/fonts/BebasNeue.otf');
+  //font-weight: normal;
+  //font-style: normal;
+}
+
+@font-face {
+  font-family: 'CanterLight';
+  src: url('../assets/fonts/Canter%20Light.otf');
+  //font-weight: normal;
+  //font-style: normal;
+}
+
+
+// This is required because of the fixed navbar
+//body { padding-top: 55px; }
+
+//.jumbotron {
+  //background-image: url('https://scontent-fra3-1.xx.fbcdn.net/hphotos-ash2/t31.0-8/c0.0.851.315/p851x315/1926027_10204866765862585_9033712559251465189_o.jpg'); //url('http://goo.gl/04j7Nn');
+  //height: 500px;
+  //background-repeat: no-repeat;
+  //background-size: cover;
+//}
+
+//.jumbotron .container {
+//  position: relative;
+//  top:100px;
+//}
+
+//.jumbotron h1 {
+//  color: #ea2749;
+//  font-size: 60px;
+//  font-family: 'BebasNeueRegular', sans-serif;
+//  font-weight: normal;
+//}
+
+//.jumbotron p {
+//  font-size: 20px;
+//  color: #fff;
+//}
+
+/*.post-header h1 {
+  color: #ea2749;
+  font-family: "CanterLight";
+}*/
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+body {
+  /* Margin bottom by footer height */
+  //margin-bottom: 60px;
+}
+
+nav {
+  //position: relative;
+  //vertical-align: text-bottom;
+}
+
+nav .nav {
+  //position: absolute;
+  //bottom: 0;
+  //right: 0;
+  //margin-bottom: -10px;
+}
+
+//.extraClass {
+//  height: 122px;
+//  position: relative;
+//}
+
+//.extraClass ul {
+//  position: absolute;
+//  bottom: 0;
+//}
+
+nav .navbar-brand {
+  color: #000000;
+  font-family: "BebasNeueRegular";
+}
+
+//.footer {
+//  color: white;
+//  background-color: #ea2749;
+//  position: absolute;
+//  bottom: 0;
+//  width: 100%;
+//  height: 3em;
+//}
+
+.carousel-item img {
+  width: auto;
+  height: 225px;
+  max-height: 20rem;
+}
+
+
+.footer-text {
+  //margin: 0.75em 0;
+}
+
+/*#bio-alicia {
+  background-image: url('/assets/img/bio_alicia.png');
+  //background-position: right bottom, left top;
+  background-repeat: no-repeat;
+  //padding: 15px;
+  background-size: 100%;
+}*/
+@media all and (min-width: 1024px) {
+  .two-column {
+    -webkit-column-count: 2; /* Chrome, Safari, Opera */
+    -moz-column-count: 2; /* Firefox */
+    column-count: 2;
+  }
+}
+
+.with-initial p:first-of-type::first-line {
+    line-height: 100%;
+}
+
+.with-initial p:first-of-type::first-letter {
+    color: #ea2749;
+    font-size: 600%;
+    float: left;
+    line-height: 0.5em;
+    //font-weight: bold;
+    //padding: 0.1em 0.3em 0.1em 0;
+    margin: 0.1em 0.1em 0.1em 0;
+    //border: 2px dashed white;
+    //box-shadow: 0 0 0 .1em #3983ab;
+  }
+
+
+$font-size-base:             1rem !default;
+$font-family-sans-serif:  'Open Sans', "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+
+@import "bootstrap/bootstrap";
+
+.intro-text {
+  font-family: "CanterLight";
+  color: blue;
+  font-size: 1.5em
+}
+
+h1 {
+  color: #000000;
+  //font-family: "CanterLight";
+  font-size: 6em;
+  text-align: left;
+}
+
+h2 {
+  color: #000000;
+  //font-family: "BebasNeueRegular";
+}
+
+h3 {
+  color: #000000;
+  //font-family: "Open Sans";
+}
+
+
