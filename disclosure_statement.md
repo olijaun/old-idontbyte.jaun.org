@@ -8,7 +8,7 @@ navid: about
 
 (last update: 2016-12-02)
 
-This blog is a personal website written and edited by me, Oliver Jaun. It contains blog posts of all kinds but mainly about computer science and music. The aim is to provide the reader with some hopefully interesting post, mostly based on my personal experiece.
+This blog is a personal website written and edited by me, Oliver Jaun. It contains blog posts of all kinds but mainly about computer science and music. The aim is to provide the reader with some hopefully interesting post, mostly based on my personal experience.
 
 I express my personal opinions and views and may be biased. I am not a professional writer or journalist. So do not expect the posts to meet any journalistic standards. Keep in mind that I am writing this blog in may spare time. Also note that english is not my mother thong. This may lead to misunderstandings which are not intended. Feel free to send me corrections.
 

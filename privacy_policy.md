@@ -13,7 +13,7 @@ your content and reading experience through the use of cookies.
 
 You can turn off the use of cookies at anytime by changing your specific browser settings.
 
-I am not responsible for republished content from this blog on other blogs or websites without our permission.
+I am not responsible for republished content from this blog on other blogs or websites without my permission.
 
 This privacy policy is subject to change without notice and was last updated on Month, Day, Year. 
 If you have any questions feel free to contact me directly here: olijaun (at) yahoo (dot) com
