@@ -4,14 +4,22 @@ layout: default_with_header
 
 
 <div class="blog-post">
-  <h2 class="blog-post-title">{{ page.title }}</h2>
-  <p class="blog-post-meta">{{ page.date | date: "%b %-d, %Y" }}{% if page.author %} • {{ page.author }}{% endif %}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
 
+    <h2 class="blog-post-title">{{ page.title }}</h2>
 
-  <p>hello world
-    {{ page.content }}
-  </p>
+    <p class="blog-post-meta">
+        {% if page.author %}Written by {{ page.author }}{% endif %}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
+    </p>
 
-  {% include disqus.html %}
+    <p>
+        <time datetime="2014-09-20" class="icon" style="float: left; margin-top: 10px; margin: 10px;">
+            <em>{{ page.date | date: "%A" }}</em>
+            <strong>{{ page.date | date: "%b %Y" }}</strong>
+            <span>{{ page.date | date: "%-d" }}</span>
+        </time>
+        {{ page.content }}
+    </p>
+
+    {% include disqus.html %}
 
 </div>
