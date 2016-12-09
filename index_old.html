@@ -1,0 +1,33 @@
+---
+layout: title
+title: My Blog
+navid: index
+---
+
+
+    {% for post in paginator.posts %}
+<div class="card-columns">
+        <div class="card card-block">
+            <h3 class="card-title">{{ post.title }}</h3>
+            <p class="card-text">{{ post.excerpt }}</p>
+            <a href="{{ post.url | prepend: site.baseurl }}" class="btn btn-primary">Read post</a>
+            <p class="card-text"><small class="text-muted">{{ post.date | date: "%b %-d, %Y" }}</small></p>
+        </div>
+</div>
+    {% endfor %}
+
+<!--{% if paginator.total_pages > 1 %}-->
+<!--<nav class="blog-pagination">-->
+<!--{% if paginator.next_page %}-->
+<!--<a class="btn btn-outline-primary" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older</a>-->
+<!--{% else %}-->
+<!--<a class="btn btn-outline-secondary disabled" href="#">Older</a>-->
+<!--{% endif %}-->
+
+<!--{% if paginator.previous_page %}-->
+<!--<a class="btn btn-outline-primary" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">Newer</a>-->
+<!--{% else %}-->
+<!--<a class="btn btn-outline-secondary disabled" href="#">Newer</a>-->
+<!--{% endif %}-->
+<!--</nav>-->
+<!--{% endif %}-->

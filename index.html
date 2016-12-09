@@ -1,37 +1,57 @@
 ---
-layout: default_with_header
+layout: title
 title: My Blog
 navid: index
 ---
 
+<div class="card-columns">
 
-        {% for post in paginator.posts %}
-        <div class="blog-post">
-            <h2 class="blog-post-title">{{ post.title }}</h2>
-            <p class="blog-post-meta">{{ post.date | date: "%b %-d, %Y" }}{% if post.author %} • {{ post.author }}{% endif %}{% if post.meta %} • {{ post.meta }}{% endif %}</p>
+    {% assign counter = 0 %}
+
+    {% for post in paginator.posts %}
 
 
-            <p>hello world
-                {{ post.excerpt }}
-            </p>
 
-            <a href="{{ post.url | prepend: site.baseurl }}">Read more...</a>
+    <a href="{{ post.url | prepend: site.baseurl }}">
+<div class="card-{{ counter | modulo : 4 }} " >
+    <!--<div class="title-card-{{ counter | modulo : 4 }} ">-->
+    <!--</div>-->
+    <!--<img class="card-img-top img-fluid" src="{{ post.image }}" alt="Card image cap">-->
+    <!--<div class="card-block">-->
+        <!--<h4 class="card-title">{{ post.title }}</h4>-->
+        <!--<h6 class="card-subtitle text-muted">Category: Music, {{ post.date | date: "%b %-d, %Y" }}</h6>-->
+    <!--</div>-->
 
-        </div>
-        {% endfor %}
+    <div class="card-block" >
+        <h4 class="card-title">{{ post.title }}</h4>
+        <h6 class="card-subtitle text-muted">{{ post.date | date: "%b %-d, %Y" }}</h6>
+        <p class="card-text">{{ post.excerpt }}</p>
+        <!--a href="{{ post.url | prepend: site.baseurl }}" class="btn btn-primary">Read post</a-->
+        <!--p class="card-text"><small class="text-muted">{{ post.date | date: "%b %-d, %Y" }}</small></p-->
+    </div>
 
-        {% if paginator.total_pages > 1 %}
-        <nav class="blog-pagination">
-            {% if paginator.next_page %}
-            <a class="btn btn-outline-primary" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older</a>
-            {% else %}
-            <a class="btn btn-outline-secondary disabled" href="#">Older</a>
-            {% endif %}
+</div>
+    </a>
 
-            {% if paginator.previous_page %}
-            <a class="btn btn-outline-primary" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">Newer</a>
-            {% else %}
-            <a class="btn btn-outline-secondary disabled" href="#">Newer</a>
-            {% endif %}
-        </nav>
-        {% endif %}
+    {% assign counter = counter | plus: 1 %}
+
+    {% endfor %}
+
+</div>
+
+
+        <!--{% if paginator.total_pages > 1 %}-->
+        <!--<nav class="blog-pagination">-->
+            <!--{% if paginator.next_page %}-->
+            <!--<a class="btn btn-outline-primary" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older</a>-->
+            <!--{% else %}-->
+            <!--<a class="btn btn-outline-secondary disabled" href="#">Older</a>-->
+            <!--{% endif %}-->
+
+            <!--{% if paginator.previous_page %}-->
+            <!--<a class="btn btn-outline-primary" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">Newer</a>-->
+            <!--{% else %}-->
+            <!--<a class="btn btn-outline-secondary disabled" href="#">Newer</a>-->
+            <!--{% endif %}-->
+        <!--</nav>-->
+        <!--{% endif %}-->

@@ -196,16 +196,63 @@ a {
  */
 
 .blog-footer {
-  padding: 2.5rem 0;
+  padding: 1rem 0;
   color: #525254;
   text-align: center;
-  background-color: #f9f9f9;
+  background-color: #e0dee1;
   border-top: .05rem solid #e5e5e5;
 }
 .blog-footer p:last-child {
   margin-bottom: 0;
 }
 
+.card-0 {
+  @extend .card;
+  border-color: #1d4a67;
+  border-width: thick;
+  border-radius: 1em;
+}
+
+.card-1 {
+  @extend .card;
+  border-color: #d52d13;
+  border-width: thick;
+  border-radius: 1em;
+}
+
+.card-2 {
+  @extend .card;
+  border-color: #2b902a;
+  border-width: thick;
+  border-radius: 1em;
+}
+
+.card-3 {
+  @extend .card;
+  border-color: #ffd11f;
+  border-width: thick;
+  border-radius: 1em;
+}
+
+.title-card-0 {
+  @extend .card-header;
+  background-color: #1d4a67;
+}
+
+.title-card-1 {
+  @extend .card-header;
+  background-color: #d52d13;
+}
+
+.title-card-2 {
+  @extend .card-header;
+  background-color: #2b902a;
+}
+
+.title-card-3 {
+  @extend .card-header;
+  background-color: #ffd11f;
+}
 
 // https://www.sitepoint.com/create-calendar-icon-html5-css3/
 
@@ -286,5 +333,7 @@ time.icon:hover, time.icon:focus
   80%  { transform: rotate(6deg)  skewY(-2deg); }
   100% { transform: rotate(0deg)  skewY(0deg); }
 }
+
+
 
 
