@@ -15,7 +15,8 @@ You can turn off the use of cookies at anytime by changing your specific browser
 
 I am not responsible for republished content from this blog on other blogs or websites without my permission.
 
-This privacy policy is subject to change without notice and was last updated on Month, Day, Year. 
+This privacy policy is subject to change without notice.
+
 If you have any questions feel free to contact me directly here: olijaun (at) yahoo (dot) com
 
 ## Ads
