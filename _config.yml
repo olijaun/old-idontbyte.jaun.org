@@ -9,7 +9,9 @@ url: "http://oliver.jaun.org" # the base hostname & protocol for your site
 
 # Build settings
 markdown: kramdown
-gems: [jekyll-paginate]
+gems:
+- jekyll-paginate
+#- jekyll-sitemap
 paginate: 5
 paginate_path: "/page:num/"
 excerpt_separator: <!--more-->
