@@ -42,7 +42,7 @@ h6, .h6 {
   font-family: 'Open Sans', sans-serif;
   font-weight: normal;
   //color: #333;
-  color: black;
+  color: #333333;
 }
 
 
@@ -62,7 +62,7 @@ h6, .h6 {
   margin-bottom: 3rem;
   -webkit-box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
   box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
-  background-color: lightgray;;
+  background-color: #333333;;
   //color: #6a6c21;
 }
 
@@ -70,7 +70,7 @@ h6, .h6 {
   //margin-bottom: 3rem;
   -webkit-box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
   box-shadow: inset 0 -.1rem .25rem rgba(0,0,0,.1);
-  background-color: black;
+  background-color: #333333;
   //color: #6a6c21;
 }
 
@@ -140,12 +140,13 @@ a {
   font-weight: normal;
   font-family: 'VT323', monospace;
   //font-family: 'Delta Jaeger Medium', normal;
-  color: black;
+  color: #333333;
 }
 .blog-description {
   font-size: 1.1rem;
-  color: darkgray;
-  font-family: 'Vollkorn', serif;
+  color: #333333;
+  //font-family: 'Vollkorn', serif;
+  font-family: 'Open Sans', sans-serif;
 }
 
 @media (min-width: 40em) {
@@ -224,28 +225,28 @@ a {
 
 .card-0 {
   @extend .card;
-  border-color: black;
+  border-color: #333333;
   border-width: thick;
   border-radius: 1em;
 }
 
 .card-1 {
   @extend .card;
-  border-color: black;
+  border-color: #333333;
   border-width: thick;
   border-radius: 1em;
 }
 
 .card-2 {
   @extend .card;
-  border-color: black;
+  border-color: #333333;
   border-width: thick;
   border-radius: 1em;
 }
 
 .card-3 {
   @extend .card;
-  border-color: black;
+  border-color: #333333;
   border-width: thick;
   border-radius: 1em;
 }
