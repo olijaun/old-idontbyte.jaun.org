@@ -2,11 +2,12 @@
 layout: default
 title: About
 navid: about
+sitemap: false
 ---
 
 # Disclosure Statement
 
-(last update: 2016-12-02)
+(last update: 2016-02-02)
 
 This blog is a personal website written and edited by me, Oliver Jaun. It contains blog posts of all kinds but mainly about computer science and music. The aim is to provide the reader with some hopefully interesting post, mostly based on my personal experience.
 
