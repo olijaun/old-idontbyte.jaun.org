@@ -41,7 +41,7 @@
 
 <div class="blog-header">
     <div class="container">
-        <h1 class="blog-title">Oliver Jaun</h1>
+        <p class="blog-title">Oliver Jaun</p>
         <p class="lead blog-description">My Personal Blog</p>
     </div>
 </div>
@@ -54,7 +54,7 @@
 
             {% for post in paginator.posts limit:2 %}
             <div class="blog-post">
-                <h2 class="blog-post-title">{{ post.title }}</h2>
+                <h1 class="blog-post-title">{{ post.title }}</h1>
                 <p class="blog-post-meta">{{ post.date | date: "%b %-d, %Y" }}{% if post.author %} • {{ post.author }}{% endif %}{% if post.meta %} • {{ post.meta }}{% endif %}</p>
 
 

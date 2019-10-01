@@ -11,9 +11,10 @@ author_about: /about
 permalink: /blog/:year/:month/:title
 # Build settings
 markdown: kramdown
-gems:
-- jekyll-paginate
-- jekyll-sitemap
+plugins:
+  - jekyll-paginate
+  #- jekyll-sitemap
+  - jekyll-plantuml
 paginate: 5
 paginate_path: "/page:num/"
 excerpt_separator: <!--more-->

@@ -1,0 +1,16 @@
+@startuml
+
+participant "Service A" as A
+particioant "Network" as N
+participant "Service B" as B
+
+A -> N: Request
+activate N
+N -> B: Request
+activate B
+N <-- B: Response
+deactivate B
+A <-- N: Response
+deactivate A
+
+@enduml

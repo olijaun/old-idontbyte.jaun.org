@@ -1,0 +1,246 @@
+I"=P<p>Idempotence is one of most essential properties of a web service. No matter whether it is SOAP, REST or GraphQL. However in my experience this aspect is often overlooked or ignored. I am aware that there are many articles about this topic already but often these articles are not tackling the topic in all his aspects. So here is my attempt.</p>
+
+<h2 id="definition">Definition</h2>
+<p>An elevator button is usually idempotent. It lights up when you press it for the first time. If you press it again it won’t change. If you press it a hundred times the elevator will still arrive once.</p>
+
+<p>In mathematics idempotence is defined as follows:</p>
+
+<blockquote>
+  <p>Idempotence is the property of certain operations in mathematics […] whereby they can be applied multiple times without changing the result beyond the initial application. (<a href="https://en.wikipedia.org/w/index.php?title=Idempotence&amp;oldid=917052170">Wikipedia</a>)</p>
+</blockquote>
+
+<p>However we are more interested in the definition used in computer science:</p>
+
+<blockquote>
+  <p>in imperative programming, a subroutine with side effects is idempotent if the system state remains the same after one or several calls, in other words if the function from the system state space to itself associated to the subroutine is idempotent in the mathematical sense given in the definition;  (<a href="https://en.wikipedia.org/w/index.php?title=Idempotence&amp;oldid=917052170">Wikipedia</a>)</p>
+</blockquote>
+
+<p>Sounds rather complicated, so here is an example in Java:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MyString</span> <span class="o">{</span>
+    
+    <span class="kd">private</span> <span class="nc">String</span> <span class="n">string</span><span class="o">;</span>
+    
+    <span class="kd">public</span> <span class="nf">MyString</span><span class="o">(</span><span class="nc">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">s</span><span class="o">;</span>
+    <span class="o">}</span>
+    
+    <span class="cm">/** idempotent method */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">toUpperCase</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="na">toUpperCase</span><span class="o">();</span>
+    <span class="o">}</span>
+    
+    <span class="cm">/** NON idempotent method */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">append</span><span class="o">(</span><span class="nc">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">string</span> <span class="o">+</span> <span class="n">s</span><span class="o">;</span>
+    <span class="o">}</span>
+    
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getValue</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">string</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">toUpperCase()</code> is idempotent: No matter whether you call <code class="highlighter-rouge">toUpperCase()</code> once or a hundred times: the result will be the same. <code class="highlighter-rouge">append()</code> is not idempotent because each time it is being called the string gets longer.</p>
+
+<h2 id="part-ii-distributed-systems">Part II: Distributed Systems</h2>
+
+<p>In the context of a single Java application (as shown above) idempotence is not so exiting… However if you have a distributed system that is communicating over a network then things are getting more interesting.</p>
+
+<p>Firstly we have to understand why distributed systems are difficult. Years ago Peter Deutsch enumerated eight <a href="https://en.wikipedia.org/w/index.php?title=Fallacies_of_distributed_computing&amp;oldid=916589690">Fallacies of Distributed Computing</a>. The first one was “The network is reliable”. Let’s assume your write a messenger app that communicates with other parties. No matter which fancy programming language you will use: in the end there will be some bits and bytes sent over the wire. So what can probably go wrong? A lot. Let’s look at a sequence diagram of two services communication. Service A sends a Request to Service B.</p>
+
+<p><img src="/uml/82772a5d39efcda8f22cb754debffc92.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<p>If Service A and Service B communicate over a network then this picture is obviously a simplification. So let’s draw the network as well:</p>
+
+<p><img src="/uml/55426ebb2e5ba887edcd9fa3cf5e517b.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<p>Also the last image is implying that there is an synchronous communication going on which is not true. The bits and bytes are travelling from A to B and eventually B might create a response that could get lost on its way back. In a programming language you may get the illusion that a request is synchronous because the libraries you are using is waiting for a response. Look at the following example:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -v http://idontbyte.jaun.org
+* Rebuilt URL to: http://idontbyte.jaun.org/
+*   Trying 185.199.111.153...
+* TCP_NODELAY set
+* Connected to idontbyte.jaun.org (185.199.111.153) port 80 (#0)
+&gt; GET / HTTP/1.1
+&gt; Host: idontbyte.jaun.org
+&gt; User-Agent: curl/7.58.0
+&gt; Accept: */*
+
+</code></pre></div></div>
+
+<p>We get the impression that our curl fetches the page at http://idontbyte.jaun.org synchronously. Under the hood what this call does is send some bytes to the server and then wait to see if it ever gets some bytes as a response. The correlation of request and response is done by the underlying protocol.</p>
+
+<p>What happens if the page is responding very slowly (i’m using <a href="http://slowwly.robertomurray.co.uk">slowwly</a> here to simulate a slow page)?</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl --max-time 1 -v http://slowwly.robertomurray.co.uk/delay/3000/url/http://www.google.ch
+*   Trying 34.241.172.109...
+* TCP_NODELAY set
+* Connected to slowwly.robertomurray.co.uk (34.241.172.109) port 80 (#0)
+&gt; GET /delay/3000/url/http://www.google.ch HTTP/1.1
+&gt; Host: slowwly.robertomurray.co.uk
+&gt; User-Agent: curl/7.58.0
+&gt; Accept: */*
+&gt; 
+* Operation timed out after 1000 milliseconds with 0 bytes received
+* stopped the pause stream!
+* Closing connection 0
+curl: (28) Operation timed out after 1000 milliseconds with 0 bytes received
+</code></pre></div></div>
+
+<p><img src="/uml/23b2c689d8006ac4ba9bd9c3f81fa777.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<ol>
+  <li>A cannot connect to the network</li>
+  <li>A can connect to the network but B cannot be reached</li>
+  <li>B cannot connect to the network when it tries to send the response</li>
+  <li>B can send the response to the network but the response never reaches A</li>
+  <li>A is waiting for the response and after a while decides to not wait any longer (timeout)</li>
+  <li>…</li>
+</ol>
+
+<p>So there are many things that can go wrong. Cases 1., 2. of course very unfortunate but it is nothing that we can solve with idempotency. Cases 3, 4 and 5 however can handled. How? Read on…</p>
+
+<h2 id="how-to-design-idempotent-services">How to design idempotent services</h2>
+
+<p>Let’s assume a person webservice that allows the creation of new persons by issuing a HTTP POST request:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /persons
+{
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>We assume that this service responds with the newly created person containing an ID that has been generated for the new person:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="err">id:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span><span class="w">
+  </span><span class="err">name:</span><span class="w"> </span><span class="s2">"Oliver"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Now assume we call this service with java:
+// TODO: curl</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Person</span> <span class="n">person</span> <span class="o">=</span> <span class="nc">Person</span> <span class="n">person</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="na">target</span><span class="o">(</span><span class="s">"http://idontbyte.jaun.org"</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">request</span><span class="o">(</span><span class="nc">MediaType</span><span class="o">.</span><span class="na">APPLICATION_JSON</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">accept</span><span class="o">(</span><span class="nc">MediaType</span><span class="o">.</span><span class="na">APPLICATION_JSON</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">post</span><span class="o">(</span><span class="nc">Entity</span><span class="o">.</span><span class="na">json</span><span class="o">(</span><span class="n">newPerson</span><span class="o">),</span> <span class="nc">Person</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>If the service or the network is very slow or the service never returns a response because it crashed then you will eventually get a <code class="highlighter-rouge">SocketTimeoutException</code>. It is not the service that returns this error, its your network stack or the Java API you are using. Usually you simply cannot wait “forever”. In theory the service might respond in one week. But this is probably too late for your use case…</p>
+
+<p>We can basically do two things now:</p>
+
+<p>Do Nothing: Because we haven’t received the response does not mean that the request has not been processed by the service! Our person might have been created and everything is fine. But how do we know? We could issue a GET call and see whether the person has been created. But wait… for this we would need the ID of the created person which is part of the response we’ve never received. Damn.</p>
+
+<p>Repeat the call: Maybe there was a temporary problem. Assuming that the person has not been created with the first call this could be the perfect solution. If the second call works then we are fine. But what if it already worked the first time and we just haven’t received the response? Then this will create a second person with the same name but a different id. This is usually not what you want.</p>
+
+<h2 id="part-iii-the-solution">Part III: The Solution</h2>
+
+<p>How can we solve this problem? By making the service idempotent. There are different possibilities. Firstly I would like to look at some services that are idempotent without having to do something special.</p>
+
+<p>The most obvious kind of services are read only services:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /persons/42
+{
+  id: 42,
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>This service is not modifying anything. You can call the service as many times as you wish, it won’t change the result. Of course, if someone changes the name of this person you will get another response but that is not what you want to solve by making the service idempotent. The point is that YOU are not changing the result by calling it multiple times. In order to know whether someone changed the data you would have to use some versioning and/or locking techniques. That’s a completely other topic.</p>
+
+<p>There are also write services that can be “naturally” idempotent. Assume a service where you can create categories to be used to categorise books in a book shop. You have categories like “fiction”, “science” or “fantasy”. Before they can be used they have to be registered via the /book-categories resource:</p>
+
+<p>TODO: Bank account</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /book-categories
+{
+  name: "fiction"
+}
+</code></pre></div></div>
+
+<p>It makes no sense to have two categories that have “fiction” as their name. So this service is probably implemented in a way that ignores requests that try to add a category with a name that already exists. If you call this service and the first call fails you can simply repeat the call until it works. You don’t have to care. <em>So this service is idempotent</em>.</p>
+
+<p>Now, what we do about our <code class="highlighter-rouge">/persons</code> resource? There might exist persons with the same name. Of course in the real world such a system would include probably a first and lastname, an address etc. But there still might be two persons with the same name and living at the same address.</p>
+
+<p>One possibility is to let the caller decide which ID to use for the person:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /persons
+{
+  id: 42,
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>The service might just ignore POST requests with an already used ID. So repeated calls with this request will not create multiple persons anymore. One problem with this approach is that the service cannot control the IDs used. So how does the caller know which IDs are still unused? Assuming someone already crated a person with ID 42. Now someone creates a person with same ID. The service will just return “OK” and the caller thinks that the person has been created successfully.</p>
+
+<p>This solution could be improved by not only checking whether the ID already exists but also by comparing the input whether it is the same as the input that has been stored already. If it is different there might be returned a special error indicating this fact. But then there would still be a problem when you actually want to create a new person although it has the same input but represents an other physical person.</p>
+
+<p>So it might be better to return a special code in the response indicating that the person already exists which is fine according to the HTTP-Specification that does not mandate POST to be idempotent (however GET, PUT, and DELETE should be implemented in an idempotent manner). Just as a side note: I’m using HTTP/REST as an examples here. Of course idempotence is also relevant for SOAP, GraphQL or any other remoting protocol.</p>
+
+<p>Another possibility would be to use PUT requests:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PUT /persons/42
+{
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>Here we are specifying the id in the URL. However, due to the fact that PUT should be idempotent we cannot return something like “already exists” if the call is performed multiple times. So if a client accidentally picks an ID that has been used by another client then he might think that his call succeeded. It does not help to check whether the ID already has been used before. Because after you have checked and before you are creating the new person someone still might create a person  with exactly this id.</p>
+
+<p>Too make this case very unlikely clients could use UUIDs (preferably type 4). These UUIDs should be unique and there shouldn’t be any collisions. Of course if clients do not generate this UUID correctly there still might be collisions.</p>
+
+<p>You can mitigate this problem by providing a service which delivers a person id that has to be used (e.g. a random UUID type 4):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /person-ids
+{
+  id: "145b63ec-1440-46b5-b29f-6ae3c948dce4"
+}
+</code></pre></div></div>
+
+<p>The client then uses this id for the PUT request:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PUT /persons/145b63ec-1440-46b5-b29f-6ae3c948dce4
+{
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>The service must make sure it is an ID that he actually issued before. This way the ID generation is controlled by the service, clients cannot do anything wrong.</p>
+
+<p>Another solution would be to treat idempotency on the request level. Have a look at the following example:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /persons
+X-idemotence-id: 145b63ec-1440-46b5-b29f-6ae3c948dce4
+
+{
+  name: "Oliver"
+}
+</code></pre></div></div>
+
+<p>So here we are adding a <code class="highlighter-rouge">X-idemotence-id</code> HTTP header to the request. The service has to remember all <code class="highlighter-rouge">X-idemotence-id</code> that he successfully processed. If he repeatedly receives the same <code class="highlighter-rouge">X-idemotence-id</code> he just ignores the request. This solution has the advantage that the service can control the generation of the person ID and no additional service is required. Of course it is again up to the client to use a proper ID that will not clash with IDs used by others.</p>
+
+<h2 id="part-4-implementation">Part 4: Implementation</h2>
+
+<p>When implementing and idempotent service special care has to be taken when persisting IDs that are used for idempotence. Make sure the ID is “unique” (e.g. using UNIQUE constraints in a database). Violations of this constraint must be handled according to the approach you have taken.</p>
+
+<p>When using the approach with <code class="highlighter-rouge">X-idemotence-id</code> one might be tempted to implement this in a reusable manner e.g. as a service. Let’s look a the following code:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="nd">@Inject</span>
+<span class="kd">private</span> <span class="nc">IdempotenceService</span> <span class="n">idempotenceService</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="nc">Person</span> <span class="nf">createPerson</span><span class="o">(</span><span class="no">UUID</span> <span class="n">idempotenceId</span><span class="o">,</span> <span class="nc">String</span> <span class="n">personId</span><span class="o">,</span> <span class="nc">String</span> <span class="n">personName</span><span class="o">)</span> <span class="o">{</span>
+    
+    <span class="n">idempotenceService</span><span class="o">.</span><span class="na">markAsUsed</span><span class="o">(</span><span class="n">idempotenceId</span><span class="o">).</span><span class="na">isFailure</span><span class="o">());</span>
+    
+    <span class="k">return</span> <span class="nf">createPerson</span><span class="o">(</span><span class="n">personId</span><span class="o">,</span> <span class="n">personName</span><span class="o">);</span>
+    
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">idempotenceService.markAsUsed</code> will for example throw an exception if the request already exists. This will only work if <code class="highlighter-rouge">idempotenceService.markAsUsed</code> runs in the same local transaction as <code class="highlighter-rouge">createPerson</code>. Because otherwise it might be possible that the request is marked as used but then then the actual creation of the person fails. The same “local transaction” means the same database (if you are using a database but the same applies for other data stores). So you cannot provide the IdempotencyService as a reusable REST service.</p>
+
+<p>Some might argue that you could use distributed transactions etc. However this leads to other problems… well basically the same problems as mentioned in Part II. Many people don’t know (or just ignore) that a distributed transaction might have a timeout as well! Beside this they can be problem for scaling etc. I won’t go into details here.</p>
+:ET

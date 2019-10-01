@@ -1,0 +1,17 @@
+@startuml
+
+participant "Service A" as A
+participant "Network" as N
+participant "Service B" as B
+autonumber
+A -> N: send 42 CHF
+activate N
+N -> B: send 42 CHF
+activate B
+N x<-- B: OK, thanks
+deactivate B
+A -> A: Timeout
+
+deactivate A
+
+@enduml
