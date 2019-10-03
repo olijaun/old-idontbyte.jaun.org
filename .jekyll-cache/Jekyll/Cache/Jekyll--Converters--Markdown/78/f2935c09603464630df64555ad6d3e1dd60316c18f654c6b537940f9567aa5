@@ -1,0 +1,328 @@
+I"�\<p>Idempotence is one of most essential properties of a web service. No matter whether it is SOAP, REST or GraphQL. However in my experience this aspect is often overlooked or ignored. I am aware that there are many articles about this topic already but often these articles are not tackling the topic in all his aspects. So here is my attempt.</p>
+
+<h2 id="definition">Definition</h2>
+<p>An elevator button is usually idempotent. It lights up when you press it for the first time. If you press it again it won’t change. If you press it a hundred times the elevator will still arrive once.</p>
+
+<p>In mathematics idempotence is defined as follows:</p>
+
+<blockquote>
+  <p>Idempotence is the property of certain operations in mathematics […] whereby they can be applied multiple times without changing the result beyond the initial application. (<a href="https://en.wikipedia.org/w/index.php?title=Idempotence&amp;oldid=917052170">Wikipedia</a>)</p>
+</blockquote>
+
+<p>However we are more interested in the definition used in computer science:</p>
+
+<blockquote>
+  <p>in imperative programming, a subroutine with side effects is idempotent if the system state remains the same after one or several calls, in other words if the function from the system state space to itself associated to the subroutine is idempotent in the mathematical sense given in the definition;  (<a href="https://en.wikipedia.org/w/index.php?title=Idempotence&amp;oldid=917052170">Wikipedia</a>)</p>
+</blockquote>
+
+<p>Here is an example in Java:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MyString</span> <span class="o">{</span>
+    
+    <span class="kd">private</span> <span class="nc">String</span> <span class="n">string</span><span class="o">;</span>
+    
+    <span class="kd">public</span> <span class="nf">MyString</span><span class="o">(</span><span class="nc">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">s</span><span class="o">;</span>
+    <span class="o">}</span>
+    
+    <span class="cm">/** idempotent method */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">toUpperCase</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="na">toUpperCase</span><span class="o">();</span>
+    <span class="o">}</span>
+    
+    <span class="cm">/** NON idempotent method */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">append</span><span class="o">(</span><span class="nc">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">string</span> <span class="o">+</span> <span class="n">s</span><span class="o">;</span>
+    <span class="o">}</span>
+    
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getValue</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">string</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">toUpperCase()</code> is idempotent: No matter whether you call <code class="highlighter-rouge">toUpperCase()</code> once or a hundred times: the result will be the same. <code class="highlighter-rouge">append()</code> is not idempotent because each time it is being called the string gets longer.</p>
+
+<h2 id="part-ii-distributed-systems">Part II: Distributed Systems</h2>
+
+<p>In the context of a single Java application (as shown above) idempotence is not so exiting… However if you have a distributed system that is communicating over a network then things are getting more interesting.</p>
+
+<p>Firstly we have to understand why distributed systems are difficult. Years ago Peter Deutsch enumerated eight <a href="https://en.wikipedia.org/w/index.php?title=Fallacies_of_distributed_computing&amp;oldid=916589690">Fallacies of Distributed Computing</a>. The first one was “The network is reliable”. Let’s assume your write a messenger app that communicates with other parties. No matter which fancy programming language you will use: in the end there will be some bits and bytes sent over the wire. So what can probably go wrong? A lot. Let’s look at a sequence diagram of two services communication. Service A sends a Request to Service B.</p>
+
+<p><img src="/uml/82772a5d39efcda8f22cb754debffc92.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<p>If Service A and Service B communicate over a network then this picture is obviously a simplification. So let’s draw the network as well:</p>
+
+<p><img src="/uml/55426ebb2e5ba887edcd9fa3cf5e517b.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<p>Also the last image is implying that there is an synchronous communication going on which is not true. The bits and bytes are travelling from A to B and eventually B might create a response that could get lost on its way back. In a programming language you may get the illusion that a request is synchronous because the libraries you are using is waiting for a response. Look at the following example:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -v http://idontbyte.jaun.org
+* Rebuilt URL to: http://idontbyte.jaun.org/
+*   Trying 185.199.111.153...
+* TCP_NODELAY set
+* Connected to idontbyte.jaun.org (185.199.111.153) port 80 (#0)
+&gt; GET / HTTP/1.1
+&gt; Host: idontbyte.jaun.org
+&gt; User-Agent: curl/7.58.0
+&gt; Accept: */*
+
+</code></pre></div></div>
+
+<p>We get the impression that our curl fetches the page at http://idontbyte.jaun.org synchronously. curl terminates as soon as it receives the response. Under the hood what this call does is send some bytes to the server and then wait to see if it ever gets some bytes as a response. The correlation of request and response is done by the underlying protocol.</p>
+
+<p>What happens if the page is responding very slow? I’m using <a href="http://slowwly.robertomurray.co.uk">slowwly</a> here to simulate a slow page. The parameter <code class="highlighter-rouge">--max-time 1</code> tells curl to wait one second for response:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl --max-time 1 -v http://slowwly.robertomurray.co.uk/delay/3000/url/http://www.google.ch
+*   Trying 34.241.172.109...
+* TCP_NODELAY set
+* Connected to slowwly.robertomurray.co.uk (34.241.172.109) port 80 (#0)
+&gt; GET /delay/3000/url/http://www.google.ch HTTP/1.1
+&gt; Host: slowwly.robertomurray.co.uk
+&gt; User-Agent: curl/7.58.0
+&gt; Accept: */*
+&gt; 
+* Operation timed out after 1000 milliseconds with 0 bytes received
+* stopped the pause stream!
+* Closing connection 0
+curl: (28) Operation timed out after 1000 milliseconds with 0 bytes received
+</code></pre></div></div>
+
+<p>curl returns a timeout error in this case. Now look at what can go wrong when A communicates with B:</p>
+
+<p><img src="/uml/8bfa7a51546bdf3008facaeb0ce1c6eb.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<ol>
+  <li>A cannot connect to the network</li>
+  <li>A can connect to the network but B cannot be reached</li>
+  <li>B cannot connect to the network when it tries to send the response</li>
+  <li>B can send the response to the network but the response never reaches A</li>
+  <li>A is waiting for the response and after a while decides to not wait any longer (timeout)</li>
+  <li>…</li>
+</ol>
+
+<p>What can be done if such a problem occurs? One simple solution is to just retry. So if the network cannot be reached we just retry to send the data again. If B is not responding then we just send the request again, maybe we get a response. Assume the following service that adds 42 Swiss Francs (CHF) to account “1”.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+
+{
+    amount: 42,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>If this POST request fails for some reason (e.g. a timeout) and we send it again then the money might be deposited twice to the given account. That is because in case of a timeout or other failures you do not know if the recipient actually sent the money or not. Maybe just the response was lost:</p>
+
+<p><img src="/uml/d3508e07a4333c35637c6b7cb11d1cac.svg" alt="PlantUML SVG diagram" class="plantuml" /></p>
+
+<p>Of course it might also be the case that the transaction was not successfully processed. If you don’t retry the money will never be added. So how can idempotency help? Read on…</p>
+
+<h2 id="how-to-design-idempotent-services">How to design idempotent services</h2>
+
+<p>Firstly it’s important to note that read-only services are already idempotent. Assume the following:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /accounts/1
+
+{
+    id: 1
+    balance: 42,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>This reads account “1”. It does not change the account. Whether this is called once or twice does not matter. It will return the same account. Of course: if someone else modifies the account after the first call then the second call will return the modified account. But that is not what you want to solve by making the service idempotent. The point is that YOU are not changing the result by calling it multiple times. In order to know whether someone changed the data you would have to use some versioning and/or locking techniques. That’s a completely different story.</p>
+
+<p>No let’s get back to our money-sender:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+
+{
+    amount: 42,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>How can this be made idempotent?</p>
+
+<h3 id="make-the-body-itself-idempotent">Make the body itself idempotent</h3>
+
+<p>The example service could be made idempotent by changing the body as follows:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PUT /accounts/1
+
+{
+    balance: 42,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>Instead of telling which amount to add the client can simply specify the new balance of the account. Now the service is idempotent. This call can made multiple times and the balance will always be 42. Obviously in this concrete case this could lead to problems if multiple clients are running in parallel. Clients would just override the value of the others. Especially in case of a banking application this would be very unfortunate.</p>
+
+<h3 id="add-an-id-to-the-body">Add an id to the body</h3>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+
+{
+    id: "123",
+    amount: 42,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>By adding “id’ to the body of the POST call the service is able to distinguish whether the caller tries to repeatedly create the same transaction. If the transactions has already be processed then the service has to options. It could just respond with OK and the client will never know whether a previous POST already worked. This is fine because the client does not need to have this information. The client just has to know if it does not work.</p>
+
+<p>The other possibility would be to respond with a special response that indicates that the response has already been processed. This would be OK as well but then the client has to handle this return code correctly.</p>
+
+<p>One thing to consider is also what should happen if you send a different transaction but with the same id:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+
+{
+    id: "123",
+    amount: 37,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>The transaction id is the same as in the other call but the amount is different: 37 CHF. The service could return a special “conflict” error code in this case. It could also be fine to ignore this case and just treat it as already processed. But probably this should be documented in the service description.</p>
+
+<p>Another issue with this solution is that the client decides which is the transaction ID to be used. Usually the service would like to choose the ID.</p>
+
+<h3 id="use-put-instead-of-post">Use PUT instead of POST</h3>
+
+<p>By using PUT it is possible to specify the transaction’s ID in the URL:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PUT /accounts/1/deposits/123
+
+{
+    amount: 37,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>Similar to the POST example above the service is now able to decide whether he as already processed the transaction or not. Like with the POST example it is again the client who chooses the transaction ID which might be a problem.</p>
+
+<h3 id="provide-an-id-generator-service">Provide an ID generator service</h3>
+
+<p>As mentioned before, usually a service would like to control the IDs used. Also, if the client chooses the transaction id then he could accidentally pick an ID that has been used by another client before. The service would then ignore this request and the client would never know.</p>
+
+<p>In order to avoid the latter clients could use UUIDs (preferably type 4). These UUIDs should be unique and there shouldn’t be any collisions. Of course if clients do not generate this UUID correctly there still might be collisions.</p>
+
+<p>If the service must control the ID to be used by the transaction then an ID generator service could be implemented:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /id-generator
+{
+  id: "145b63ec-1440-46b5-b29f-6ae3c948dce4"
+}
+</code></pre></div></div>
+
+<p>This id generator just generates a new ID each time it is called. This ID is then used when creating a transaction:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+
+{
+    id: "145b63ec-1440-46b5-b29f-6ae3c948dce4"
+    amount: 37,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>The service must check whether the transaction id specified has been issued before. If this is true then the transaction will be created.</p>
+
+<p>The disadvantage of this solution is of course that the client has to perform two calls and an additional service (the id generator) has to be implemented.</p>
+
+<h3 id="provide-an-idempotence-id-as-request-metadata">Provide an idempotence id as request metadata</h3>
+
+<p>Currently I think that probably the best solution is to use a dedicated idempotence id. In case of HTTP this could be implemented as a HTTP header:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /accounts/1/deposits
+x-idempotence-id: 145b63ec-1440-46b5-b29f-6ae3c948dce4
+
+{
+    amount: 37,
+    currency: "CHF"
+}
+</code></pre></div></div>
+
+<p>The service has to remember all <code class="highlighter-rouge">x-idemotence-id</code>s that he successfully processed. If he repeatedly receives the same <code class="highlighter-rouge">x-idemotence-id</code> he just ignores the request. This solution has the advantage that the service can control the generation of the transaction ID and no additional service is required in order to generate an ID. Of course it is again up to the client to use a proper ID that will not clash with IDs used by others.</p>
+
+<p>This also allows to use POST instead of PUT. I think it’s more intuitive to create resources with POST and not with PUT. PUT would be used for updates of an existing resource (which probably makes no sense in our concrete example).</p>
+
+<h2 id="service-implementation-considerations">Service implementation considerations</h2>
+
+<p>When implementing and idempotent service special care has to be taken when persisting IDs that are used for idempotence. Make sure the ID is “unique” (e.g. using UNIQUE constraints in a database). Violations of this constraint must be handled according to the approach you have taken.</p>
+
+<p>When using the approach with a dedicated idempotence id (e.g. <code class="highlighter-rouge">x-idemotence-id</code>) then it must be assured that the business entity (the account transaction in the example) is saved in the same local transaction as the idempotence id:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Path</span><span class="o">(</span><span class="s">"/accounts/{id}"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">AccountResource</span> <span class="o">{</span>
+
+    <span class="nd">@Autowired</span>
+    <span class="kd">private</span> <span class="nc">TransactionTemplate</span> <span class="n">transactionTemplate</span><span class="o">;</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="nd">@Autowired</span>
+    <span class="kd">private</span> <span class="nc">JdbcTemplate</span> <span class="n">jdbcTemplate</span><span class="o">;</span>
+
+     <span class="nd">@POST</span>
+     <span class="nd">@Produces</span><span class="o">({</span><span class="nc">MediaType</span><span class="o">.</span><span class="na">TEXT_PLAIN</span><span class="o">})</span>
+        <span class="nd">@Path</span><span class="o">(</span><span class="s">"/deposits"</span><span class="o">)</span>
+        <span class="nd">@Transactional</span>
+        <span class="kd">public</span> <span class="nc">Response</span> <span class="nf">addDeposit</span><span class="o">(</span><span class="nc">Deposit</span> <span class="n">deposit</span><span class="o">,</span> <span class="nd">@HeaderParam</span><span class="o">(</span><span class="s">"x-idempotence-id"</span><span class="o">)</span> <span class="nc">String</span> <span class="n">idempotenceId</span><span class="o">)</span> <span class="o">{</span>
+    
+    
+            <span class="nc">String</span> <span class="n">newDepositId</span> <span class="o">=</span> <span class="no">UUID</span><span class="o">.</span><span class="na">randomUUID</span><span class="o">().</span><span class="na">toString</span><span class="o">();</span>
+    
+            <span class="k">try</span> <span class="o">{</span>
+                <span class="n">transactionTemplate</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="k">new</span> <span class="nc">TransactionCallbackWithoutResult</span><span class="o">()</span> <span class="o">{</span>
+    
+                    <span class="nd">@Override</span>
+                    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">doInTransactionWithoutResult</span><span class="o">(</span><span class="nc">TransactionStatus</span> <span class="n">transactionStatus</span><span class="o">)</span> <span class="o">{</span>
+    
+                        <span class="n">saveIdempotenceId</span><span class="o">(</span><span class="n">idempotenceId</span><span class="o">,</span> <span class="n">newDepositId</span><span class="o">);</span>
+    
+                        <span class="n">saveDeposit</span><span class="o">(</span><span class="n">newDepositId</span><span class="o">,</span> <span class="n">deposit</span><span class="o">);</span>
+                    <span class="o">}</span>
+                <span class="o">});</span>
+    
+                <span class="k">return</span> <span class="nc">Response</span><span class="o">.</span><span class="na">ok</span><span class="o">(</span><span class="n">newDepositId</span><span class="o">).</span><span class="na">build</span><span class="o">();</span>
+    
+            <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+    
+                <span class="nc">String</span> <span class="n">existingDepositId</span> <span class="o">=</span> <span class="n">getDepositIdByIdempotenceId</span><span class="o">(</span><span class="n">idempotenceId</span><span class="o">);</span>
+    
+                <span class="k">if</span> <span class="o">(</span><span class="n">existingDepositId</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+    
+                    <span class="nc">Deposit</span> <span class="n">existingDeposit</span> <span class="o">=</span> <span class="n">getDeposit</span><span class="o">(</span><span class="n">existingDepositId</span><span class="o">);</span>
+    
+                    <span class="k">if</span> <span class="o">(</span><span class="n">existingDeposit</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">deposit</span><span class="o">))</span> <span class="o">{</span>
+                        <span class="k">return</span> <span class="nc">Response</span><span class="o">.</span><span class="na">ok</span><span class="o">(</span><span class="n">existingDepositId</span><span class="o">).</span><span class="na">build</span><span class="o">();</span>
+                    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+                        <span class="k">return</span> <span class="nc">Response</span><span class="o">.</span><span class="na">status</span><span class="o">(</span><span class="nc">Response</span><span class="o">.</span><span class="na">Status</span><span class="o">.</span><span class="na">CONFLICT</span><span class="o">).</span><span class="na">build</span><span class="o">();</span>
+                    <span class="o">}</span>
+                <span class="o">}</span>
+    
+                <span class="k">throw</span> <span class="n">e</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        
+     <span class="c1">// ...</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>In the example application (<a href="http://github.com">see here for full source</a>) there are two saves performed: First the idempotence id is saved and then the business entity itself (the Deposit) is saved (the example uses a relational database and SQL for this). Both saves are done inside the same transaction (here using Spring programmatic transactions). This is important. Otherwise it could be that the idempotence id is stored but the actual business entity is not. If the client retries the request it would get an “OK” response which is obviously not true.</p>
+
+<p>If two clients are calling this method with the same idempotence id at almost the same time then the first will store the idempotence id. The second one will get a locking error (if the transaction of the first has not finished yet). In my examplethis is e.g.:</p>
+
+<blockquote>
+  <p>Concurrent update in table “IDEMPOTENT_REQUEST”: another transaction has updated or deleted the same row [90131-199]</p>
+</blockquote>
+
+<p>An exception is also thrown in case the idempotence id already was saved before, because we have a UNIQUE constraint on this column.</p>
+
+<p>Inside the catch block we check whether a deposit id already exists for this idempotence id. If it exists, we check whether the corresponding deposit matches the one the caller tries to save. If this is true the service returns the deposit id of the already stored entity.</p>
+
+<p>Read Committed:</p>
+
+:ET

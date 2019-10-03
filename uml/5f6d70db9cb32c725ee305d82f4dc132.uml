@@ -1,9 +1,0 @@
-@startuml
-
-participant "Service A" as A
-participant "Service B" as B
-
-A -> B: Request
-A <-- B: Response
-
-@enduml
