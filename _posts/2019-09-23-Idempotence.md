@@ -146,8 +146,8 @@ What can be done if such a problem occurs? One simple solution is to just retry.
 POST /accounts/1/deposits
 
 {
-    amount: 42,
-    currency: "CHF"
+    "amount": 42,
+    "currency": "CHF"
 }
 ```
 
@@ -172,109 +172,134 @@ Of course it might also be the case that the transaction was not successfully pr
 
 ## How to design idempotent services
 
+### A note on HTTP and REST
+
+The following examples in this post are RESTfull services (at least sort of... please don't call the REST police). However the general principles can also be applied to any other remoting protocol like [SOAP](https://en.wikipedia.org/w/index.php?title=SOAP&oldid=917411406), [gRPC](https://grpc.io/) etc.
+ 
+One thing to note is the fact that HTTP defines which verbs (GET, POST, PUT, ...) are supposed to be idempotent and which not. This is defined in [rfc7231](https://tools.ietf.org/html/rfc7231). When implementing a webservice this could of course be ignored but it would violate the principles of HTTP/REST. A REST service is not simply idempotent by using any of the "idempotent" verbs. It is idempotent because it was implemented this way.
+
+- Idempotent: GET, HEAD, PUT, DELETE, OPTIONS and TRACE
+- Non-Idempotent: POST, PATCH (see [rfc5789](https://tools.ietf.org/html/rfc5789))
+
+An interesting comment in respect to idempotence and HTTP can be found [on Stackoverflow](https://stackoverflow.com/questions/45016234/what-is-idempotency-in-http-methods#targetText=A%20request%20method%20is%20considered,safe%20request%20methods%20are%20idempotent).
+
+
+### Some services are already idempotent
+
 Firstly it's important to note that read-only services are already idempotent. Assume the following:
 
 ```
-GET /accounts/1
+GET /accounts/1/deposits/123
 
 {
-    id: 1
-    balance: 42,
-    currency: "CHF"
+    "amount": 42,
+    "currency": "CHF"
 }
 ```
 
-This reads account "1". It does not change the account. Whether this is called once or twice does not matter. It will return the same account. Of course: if someone else modifies the account after the first call then the second call will return the modified account. But that is not what you want to solve by making the service idempotent. The point is that YOU are not changing the result by calling it multiple times. In order to know whether someone changed the data you would have to use some versioning and/or locking techniques. That's a completely different story.
+This reads the deposit with id "123". It does not change the deposit. Whether this is called once or twice does not matter. It will return the same deposit. Of course: if someone else modifies the account after the first call then the second call will return the modified account. But that is not what you want to solve by making the service idempotent. The point is that YOU are not changing the result by calling it multiple times. In order to know whether someone changed the data you would have to use some versioning and/or locking techniques. That's a completely different story.
 
-No let's get back to our money-sender:
-
-```
-POST /accounts/1/deposits
-
-{
-    amount: 42,
-    currency: "CHF"
-}
-```
-
-How can this be made idempotent?
-
-### Make the body itself idempotent
-
-The example service could be made idempotent by changing the body as follows:
-
-```
-PUT /accounts/1
-
-{
-    balance: 42,
-    currency: "CHF"
-}
-```
-
-Instead of telling which amount to add the client can simply specify the new balance of the account. Now the service is idempotent. This call can made multiple times and the balance will always be 42. Obviously in this concrete case this could lead to problems if multiple clients are running in parallel. Clients would just override the value of the others. Especially in case of a banking application this would be very unfortunate.
-
-
-### Add an id to the body
-
-```
-POST /accounts/1/deposits
-
-{
-    id: "123",
-    amount: 42,
-    currency: "CHF"
-}
-```
-
-By adding "id' to the body of the POST call the service is able to distinguish whether the caller tries to repeatedly create the same transaction. If the transactions has already be processed then the service has to options. It could just respond with OK and the client will never know whether a previous POST already worked. This is fine because the client does not need to have this information. The client just has to know if it does not work.
-
-The other possibility would be to respond with a special response that indicates that the response has already been processed. This would be OK as well but then the client has to handle this return code correctly.
-
-One thing to consider is also what should happen if you send a different transaction but with the same id:
-
-```
-POST /accounts/1/deposits
-
-{
-    id: "123",
-    amount: 37,
-    currency: "CHF"
-}
-```
-
-The transaction id is the same as in the other call but the amount is different: 37 CHF. The service could return a special "conflict" error code in this case. It could also be fine to ignore this case and just treat it as already processed. But probably this should be documented in the service description.
-
-Another issue with this solution is that the client decides which is the transaction ID to be used. Usually the service would like to choose the ID.
-
-
-### Use PUT instead of POST
-
-By using PUT it is possible to specify the transaction's ID in the URL:
+Assuming that existing deposits can be modified this could look like this:
 
 ```
 PUT /accounts/1/deposits/123
 
 {
-    amount: 37,
-    currency: "CHF"
+    "amount": 120,
+    "currency": "CHF"
 }
 ```
 
-Similar to the POST example above the service is now able to decide whether he as already processed the transaction or not. Like with the POST example it is again the client who chooses the transaction ID which might be a problem.
+Here we are changing the deposit "123" to have an amount of 120. This can be called multiple times without having a different outcome.
+
+
+### Add an id to the body
+
+The problem with idemotence is mainly with services that create a resource. In our example we want to create new deposits for a given account. With HTTP this is usually done with POST. 
+
+```
+POST /accounts/1/deposits
+
+{
+    "amount": 42,
+    "currency": "CHF"
+}
+
+```
+
+The response to POST could be:
+
+```
+200 OK
+Location: /accounts/1/deposists/145b63ec-1440-46b5-b29f-6ae3c948dce4
+
+{
+    "id": "145b63ec-1440-46b5-b29f-6ae3c948dce4"
+    "amount": 42,
+    "currency": "CHF"
+}
+```
+
+So the response is telling us the ID of the newly generated deposit. How can we avoid that multiple invocations of the POST won't create multiple resources? Here is a possible solution:
+
+```
+POST /accounts/1/deposits
+
+{
+    "id": "123",
+    "amount": 42,
+    "currency": "CHF"
+}
+```
+
+So instead of letting the service generate an ID the caller specifies the deposit ID to be used in the body of the HTTP message. Now the service is able to distinguish whether the caller tries to repeatedly create the same deposit or if he tries to create a new deposit. 
+
+One thing to consider is also what should happen if you POST a different deposit but with the same id:
+
+```
+POST /accounts/1/deposits
+
+{
+    "id": "123",
+    "amount": 37,
+    "currency": "CHF"
+}
+```
+
+Here we are telling the service to create the deposit "123" which was created before but with a different amount. The simplest approach is to just have a generic response saying something like "a deposit with this id has already been created". It would be more difficult to have two different responses. One for the case just mentioned and the actual repeated call.
+
+Another issue with this solution is that the client decides which is the deposit ID to be used. Usually the service would like to choose the ID.
+
+
+### Use PUT instead of POST
+
+By using PUT it is possible to specify the deposit's ID in the URL:
+
+```
+PUT /accounts/1/deposits/123
+
+{
+    "amount": 42,
+    "currency": "CHF"
+}
+```
+
+Similar to the POST example above the service is now able to decide whether he as already processed the transaction or not. Like with the POST example it is again the client who chooses the deposit ID.
+
+If the deposit with id "123" does not exist yet, then it is created. Subsequent calls would update the existing deposit. This might work in some cases. However keep in mind that it would be more "REST-like" to use POST for resource creation.
 
 ### Provide an ID generator service
 
-As mentioned before, usually a service would like to control the IDs used. Also, if the client chooses the transaction id then he could accidentally pick an ID that has been used by another client before. The service would then ignore this request and the client would never know. 
+As mentioned before, usually a service would like to control the IDs used. Also, if the client chooses the deposit ID then he could accidentally pick an ID that has been used by another client before. The service would then ignore this request and the client would never know. 
 
-In order to avoid the latter clients could use UUIDs (preferably type 4). These UUIDs should be unique and there shouldn't be any collisions. Of course if clients do not generate this UUID correctly there still might be collisions.
+In order to avoid the latter clients could use UUIDs ([preferably type 4, which are random](https://en.wikipedia.org/w/index.php?title=Universally_unique_identifier&oldid=915343615)). These UUIDs should be unique and there shouldn't be any collisions. The correct format of the ID should be validated in the service.
 
-If the service must control the ID to be used by the transaction then an ID generator service could be implemented:
+If the service must control the ID to be used then an ID generator service could be implemented:
 
 ```
 POST /id-generator
 {
-  id: "145b63ec-1440-46b5-b29f-6ae3c948dce4"
+  "id": "145b63ec-1440-46b5-b29f-6ae3c948dce4"
 }
 ```
 
@@ -284,124 +309,79 @@ This id generator just generates a new ID each time it is called. This ID is the
 POST /accounts/1/deposits
 
 {
-    id: "145b63ec-1440-46b5-b29f-6ae3c948dce4"
-    amount: 37,
-    currency: "CHF"
+    "id": "145b63ec-1440-46b5-b29f-6ae3c948dce4",
+    "amount": 37,
+    "currency": "CHF"
 }
 ```
 
-The service must check whether the transaction id specified has been issued before. If this is true then the transaction will be created.
+The service must check whether the deposit ID specified has been issued before. If this is true then the deposit will be created (if it does not exist yet).
 
 The disadvantage of this solution is of course that the client has to perform two calls and an additional service (the id generator) has to be implemented.
 
-### Provide an idempotence id as request metadata
+### Provide an request id as request metadata
 
-Currently I think that probably the best solution is to use a dedicated idempotence id. In case of HTTP this could be implemented as a HTTP header:
+Currently I think that probably the best solution is to use a dedicated request id. In case of HTTP this could be implemented as a HTTP header:
 
 ```
 POST /accounts/1/deposits
-x-idempotence-id: 145b63ec-1440-46b5-b29f-6ae3c948dce4
+x-request-id: 145b63ec-1440-46b5-b29f-6ae3c948dce4
 
 {
-    amount: 37,
-    currency: "CHF"
+    "amount": 37,
+    "currency": "CHF"
 }
 ```
 
-The service has to remember all `x-idemotence-id`s that he successfully processed. If he repeatedly receives the same `x-idemotence-id` he just ignores the request. This solution has the advantage that the service can control the generation of the transaction ID and no additional service is required in order to generate an ID. Of course it is again up to the client to use a proper ID that will not clash with IDs used by others.
+The service has to remember all `x-request-id`s that he successfully processed. If he repeatedly receives the same `x-request-id` he indicates this with a special return code. This solution has the advantage that the service can control the generation of the deposit ID and no additional service is required in order to generate an ID. Of course it is again up to the client to use a proper `x-request-id` that will not clash with IDs used by others. A good choice would be a UUID Type 4 and service side validation of the `x-request-id`.
 
-This also allows to use POST instead of PUT. I think it's more intuitive to create resources with POST and not with PUT. PUT would be used for updates of an existing resource (which probably makes no sense in our concrete example).
+This also allows to use POST instead of PUT. I think it's more intuitive to create resources with POST and not with PUT. PUT would be used for updates only.
 
 ## Service implementation considerations
 
-When implementing and idempotent service special care has to be taken when persisting IDs that are used for idempotence. Make sure the ID is "unique" (e.g. using UNIQUE constraints in a database). Violations of this constraint must be handled according to the approach you have taken.
+When implementing and idempotent service special care has to be taken when persisting a `x-request-id`. Make sure the ID is "unique" (e.g. using UNIQUE constraints in a database). Violations of this constraint must be handled according to the approach you have taken.
 
-When using the approach with a dedicated idempotence id (e.g. `x-idemotence-id`) then it must be assured that the business entity (the account transaction in the example) is saved in the same local transaction as the idempotence id:
+Also itt must be assured that the business entity (the account deposit in the example) is saved in the same local transaction as the `x-request-id`:
 
 ```java
 @Path("/accounts/{id}")
 public class AccountResource {
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
     // ...
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-     @POST
-     @Produces({MediaType.TEXT_PLAIN})
-        @Path("/deposits")
-        @Transactional
-        public Response addDeposit(Deposit deposit, @HeaderParam("x-idempotence-id") String idempotenceId) {
-    
-    
-            String newDepositId = UUID.randomUUID().toString();
-    
-            try {
-                transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-    
-                    @Override
-                    protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-    
-                        saveIdempotenceId(idempotenceId, newDepositId);
-    
-                        saveDeposit(newDepositId, deposit);
-                    }
-                });
-    
-                return Response.ok(newDepositId).build();
-    
-            } catch (Exception e) {
-    
-                String existingDepositId = getDepositIdByIdempotenceId(idempotenceId);
-    
-                if (existingDepositId != null) {
-    
-                    Deposit existingDeposit = getDeposit(existingDepositId);
-    
-                    if (existingDeposit.equals(deposit)) {
-                        return Response.ok(existingDepositId).build();
-                    } else {
-                        return Response.status(Response.Status.CONFLICT).build();
-                    }
-                }
-    
-                throw e;
-            }
-        }
+    @POST
+    @Produces({MediaType.TEXT_PLAIN})
+    @Path("/deposits")
+    @Transactional
+    public Response addDeposit(Deposit deposit, @HeaderParam("x-request-id") String idempotenceId) {
         
+        try {
+            String newDepositId = UUID.randomUUID().toString();
+            transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+                @Override
+                protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
+                    saveIdempotenceId(idempotenceId);
+                    saveDeposit(newDepositId, deposit);
+                }
+            });
+            return Response.ok(newDepositId).build();
+    
+        } catch (RuntimeException e) {
+            if (idempotenceIdExists(idempotenceId)) {
+                Response.status(Response.Status.CONFLICT).build();
+            }
+            throw e;
+        }
+    }
      // ...
 }
 ```
 
-In the example application ([see here for full source](http://github.com)) there are two saves performed: First the idempotence id is saved and then the business entity itself (the Deposit) is saved (the example uses a relational database and SQL for this). Both saves are done inside the same transaction (here using Spring programmatic transactions). This is important. Otherwise it could be that the idempotence id is stored but the actual business entity is not. If the client retries the request it would get an "OK" response which is obviously not true.
+In the example application ([TODO: see here for full source](http://github.com)) there are two inserts into the database performed: First the `x-request-id` is saved. Second the business entity itself (the deposit) is saved (the example uses a relational database and SQL for this). 
 
-If two clients are calling this method with the same idempotence id at almost the same time then the first will store the idempotence id. The second one will get a locking error (if the transaction of the first has not finished yet). In my examplethis is e.g.:
+Both inserts are preformed inside the same local transaction (here using Spring programmatic transactions). This is very important: If you would insert the `x-request-id` in a seperate transaction and the second insert for the deposit entry would fail afterwards then the request would appear to be processed on repeated calls.
 
-> Concurrent update in table "IDEMPOTENT_REQUEST": another transaction has updated or deleted the same row [90131-199]
-
-An exception is also thrown in case the idempotence id already was saved before, because we have a UNIQUE constraint on this column.
-
-Inside the catch block we check whether a deposit id already exists for this idempotence id. If it exists, we check whether the corresponding deposit matches the one the caller tries to save. If this is true the service returns the deposit id of the already stored entity. This only works if we know which was the state of entity at the time it was saved. 
-
-## A note on HTTP
-
-The examples in this articles are REST or at least REST-like webservices. However everything is also valid for SOAP services or any RPC protocol. One thing to note when HTTP is used is the fact that HTTP defines which verbs are supposed to be idempotent and which not. This is defined in [rfc7231](https://tools.ietf.org/html/rfc7231)
+This also shows that it is not possible to implement `saveIdempotenceId()` using a remote web service or using a different database. I mentioned that you must use a local transaction. This is only possible if you are e.g. inside the same database. You could use two different database and use distributed transactions ([XA Transactions](https://de.wikipedia.org/wiki/X/Open_XA)). The problem with distributed transactions is that they are... well... distributed. So they are actually suffering the same problem we are trying to solve with our `x-request-id`. If you don't believe me then look-up "xa heuristic exceptions" ([look here for example](https://www.atomikos.com/Documentation/HeuristicExceptions)).
 
 
-
-https://stackoverflow.com/questions/45016234/what-is-idempotency-in-http-methods#targetText=A%20request%20method%20is%20considered,safe%20request%20methods%20are%20idempotent.
-
-9.1.2 Idempotent Methods
-Methods can also have the property of "idempotence" in that (aside from error or expiration issues) the side-effects of N > 0 identical requests is the same as for a single request. The methods GET, HEAD, PUT and DELETE share this property. Also, the methods OPTIONS and TRACE SHOULD NOT have side effects, and so are inherently idempotent.
-
-However, it is possible that a sequence of several requests is non- idempotent, even if all of the methods executed in that sequence are idempotent. (A sequence is idempotent if a single execution of the entire sequence always yields a result that is not changed by a reexecution of all, or part, of that sequence.) For example, a sequence is non-idempotent if its result depends on a value that is later modified in the same sequence.
-
-A sequence that never has side effects is idempotent, by definition (provided that no concurrent operations are being executed on the same set of resources).
-
-9.2 OPTIONS
 
 
 
