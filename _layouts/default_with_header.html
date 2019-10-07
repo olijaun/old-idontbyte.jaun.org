@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+{% include head.html %}
+
+<body>
+
+<div class="blog-masthead-without-margin">
+{% include nav.html %}
+</div>
+
+{% include header.html %}
+
+<div class="container">
+
+
+  <div class="row">
+
+    <div class="col-sm-8 blog-main">
+
+      {{ content }}
+
+    </div><!-- /.blog-main -->
+
+    <div class="col-sm-3 offset-sm-1 blog-sidebar hidden-sm-down">
+
+      <div class="sidebar-module sidebar-module-inset">
+        <h4>About</h4>
+        <!--p><img src="/assets/img/me2.jpg" alt="..." class="rounded-circle" ></p-->
+        <p>I am a software engineer and hobby musician living in Berne, Switzerland. I am currently working for a swiss insurance company as a software developer (Java, JEE) and solution architect.</p>
+      </div>
+      <div class="sidebar-module">
+        <h4>Latest posts</h4>
+        <ol class="list-unstyled">
+
+          {% for post in site.posts limit: 10 %}
+          <li><a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a></li>
+          {% endfor %}
+
+        </ol>
+        <hr>
+        <a href="/posts.html">All posts...</a>
+      </div>
+      <!--div class="sidebar-module">
+        <h4>Elsewhere</h4>
+        <ol class="list-unstyled">
+          <li><a href="#">GitHub</a></li>
+        </ol-->
+      </div>
+    </div><!-- /.blog-sidebar -->
+
+  </div><!-- /.row -->
+
+</div>
+
+{% include footer.html %}
+
+</body>
+</html>

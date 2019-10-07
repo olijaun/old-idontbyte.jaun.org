@@ -1,0 +1,29 @@
+---
+layout: default_with_header
+---
+
+
+<div class="blog-post">
+
+    <h1 class="blog-post-title">{{ page.title }}</h1>
+
+    <p class="blog-post-meta">
+
+        {% if page.author %}By <a href="{{ page.author_about }}">{{ page.author }}</a>
+        {% elsif site.author %}By <a href="{{ site.author_about }}">{{ site.author }}</a>{% endif %}
+        {% if page.date %} • <time datetime='{{ page.date | date: "%Y-%m-%d" }}'>{{ page.date | date: "%b %-d, %Y" }}</time>
+        {% if page.last_modified_at %}
+        (Last modified at <time datetime='{{ page.last_modified_at | date: "%Y-%m-%d" }}'>{{ page.last_modified_at | date: "%b %-d, %Y" }}</time>)
+        {% endif %}
+
+        {% endif %}
+        {% if page.meta %} • {{ page.meta }}{% endif %}
+    </p>
+
+    <p>
+        {{ page.content }}
+    </p>
+
+    {% include disqus.html %}
+
+</div>

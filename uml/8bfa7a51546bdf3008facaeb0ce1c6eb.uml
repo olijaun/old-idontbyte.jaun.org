@@ -1,0 +1,18 @@
+@startuml
+
+participant "Service A" as A
+participant "Network" as N
+participant "Service B" as B
+autonumber
+A ->x N: Request
+activate N
+N ->x B: Request
+activate B
+N x<-- B: Response
+deactivate B
+A -> A: Timeout
+
+A x<-- N: Response
+deactivate A
+
+@enduml
